@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#172554">
+<title>HSK 3.0 Flashcards</title>
+<style>
+:root{--navy:#172554;--blue:#2563eb;--paper:#f5f7fb;--ink:#172033;--muted:#64748b}
+*{box-sizing:border-box}body{margin:0;background:var(--paper);font-family:system-ui,-apple-system,"Segoe UI",sans-serif;color:var(--ink)}
+header{background:var(--navy);color:white;padding:24px 18px 28px;text-align:center}
+header h1{margin:0;font-size:25px}header p{margin:7px 0 0;color:#dbeafe;font-size:14px}
+main{max-width:680px;margin:0 auto;padding:18px}
+.levels{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin:8px 0 18px}
+.level{border:0;border-radius:18px;padding:19px 14px;background:white;box-shadow:0 5px 18px #0f172a0c;text-align:left;color:var(--ink);cursor:pointer}
+.level strong{display:block;font-size:22px;color:var(--blue)}.level span{font-size:12px;color:var(--muted)}
+.level.active{outline:2px solid var(--blue);background:#eff6ff}
+#study{display:none}
+.topline{display:flex;justify-content:space-between;align-items:center;gap:10px;margin:12px 0}
+button{font:inherit;cursor:pointer}
+.small{border:1px solid #dbe2ee;background:white;border-radius:10px;padding:8px 12px;color:var(--ink)}
+.progress{height:7px;background:#e2e8f0;border-radius:20px;overflow:hidden;margin:10px 0 18px}.bar{height:100%;width:0;background:var(--blue);transition:width .2s}
+.card{min-height:290px;background:white;border-radius:24px;box-shadow:0 12px 34px #0f172a12;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;padding:25px 18px;cursor:pointer;user-select:none;touch-action:pan-y}
+.hanzi{font-size:clamp(52px,14vw,88px);font-weight:650;line-height:1.35}
+.tap{font-size:13px;color:var(--muted);margin-top:15px}
+.back{display:none;margin-top:16px}.pinyin{font-size:25px;color:var(--blue);font-weight:650}.meaning{font-size:20px;margin-top:8px}
+.pos{font-size:12px;color:var(--muted);margin-top:8px}
+.nav{display:flex;gap:10px;margin-top:16px}.nav button{flex:1;border:0;border-radius:14px;padding:14px;background:var(--navy);color:white;font-weight:600}.nav button:disabled{opacity:.35}
+.tools{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}.tools button{flex:1}
+.notice{font-size:12px;line-height:1.5;color:var(--muted);margin:18px 2px}
+#status{color:var(--muted);font-size:13px;text-align:center;padding:10px}
+input{width:100%;border:1px solid #dbe2ee;border-radius:12px;padding:12px;font-size:16px;margin:4px 0 12px}
+@media(min-width:600px){main{padding-top:24px}.card{min-height:340px}}
+</style></head>
+<body>
+<header><h1>汉语词汇 · HSK Flashcards</h1><p>HSK 3.0 · Tap to reveal · Swipe to move</p></header>
+<main>
+<div id="home">
+ <h2>Choose your level</h2>
+ <div class="levels">
+  <button class="level" data-level="1"><strong>HSK 1</strong><span>Beginner · 294 words</span></button>
+  <button class="level" data-level="2"><strong>HSK 2</strong><span>Elementary · 197 new words</span></button>
+  <button class="level" data-level="3"><strong>HSK 3</strong><span>Intermediate · 487 new words</span></button>
+  <button class="level" data-level="4"><strong>HSK 4</strong><span>Upper-intermediate · 972 new words</span></button>
+ </div>
+ <p class="notice">Choose a level to start. Each level contains the new words introduced at that level, not the cumulative list from previous levels.</p>
+</div>
+<section id="study">
+ <div class="topline"><button class="small" id="backHome">← Levels</button><strong id="levelName">HSK 1</strong><span id="counter">1 / 294</span></div>
+ <div class="progress"><div class="bar" id="bar"></div></div>
+ <input id="search" placeholder="Search character or pinyin…" autocomplete="off">
+ <div class="card" id="card" role="button" tabindex="0" aria-label="Tap to reveal pinyin and meaning">
+  <div class="hanzi" id="hanzi">学</div>
+  <div class="tap" id="tapHint">Tap to reveal pinyin + English meaning</div>
+  <div class="back" id="back">
+   <div class="pinyin" id="pinyin">xué</div><div class="meaning" id="meaning">to study; to learn</div><div class="pos" id="pos"></div>
+  </div>
+ </div>
+ <div class="nav"><button id="prev">← Previous</button><button id="next">Next →</button></div>
+ <div class="tools"><button class="small" id="shuffle">Shuffle</button><button class="small" id="known">✓ Mark known</button><button class="small" id="restart">Restart</button></div>
+ <div id="status">Loading vocabulary…</div>
+</section>
+<p class="notice">Tip: Try to say the word aloud before revealing the answer. You can also swipe left/right on the card. Vocabulary source: <a href="https://github.com/dcmshi/hsk-study-guide" target="_blank" rel="noopener">dcmshi/hsk-study-guide</a> (HSK 3.0 2026 lists). English definitions are based on CC-CEDICT (CC BY-SA 4.0); see the source repository’s notices.</p>
+</main>
+<script>
+const base='https://raw.githubusercontent.com/dcmshi/hsk-study-guide/main/';
+const paths={
+ 1:'levels/hsk-1-2/vocab/hsk3-level-1.csv',
+ 2:'levels/hsk-1-2/vocab/hsk3-level-2.csv',
+ 3:'levels/hsk-3/vocab/hsk3-level-3.csv',
+ 4:'levels/hsk-4/vocab/hsk3-level-4.csv'
+};
+let words=[],index=0,shown=false,known=new Set(),current=1,touchX=0;
+const $=id=>document.getElementById(id);
+function parseCSV(s){
+ const rows=[];let row=[],v='',q=false;
+ for(let i=0;i<s.length;i++){let c=s[i];if(c==='"'){if(q&&s[i+1]==='"'){v+='"';i++}else q=!q}
+ else if(c===','&&!q){row.push(v);v=''}else if((c==='\n'||c==='\r')&&!q){if(c==='\r'&&s[i+1]==='\n')i++;row.push(v);if(row.some(x=>x.trim()))rows.push(row);row=[];v=''}else v+=c}
+ row.push(v);if(row.some(x=>x.trim()))rows.push(row);
+ const head=rows.shift().map(x=>x.trim().toLowerCase());
+ return rows.map(r=>Object.fromEntries(head.map((h,i)=>[h,(r[i]||'').trim()]))).map(o=>({
+ word:o.word||o.hanzi||o.chinese||o.character||'',
+ pinyin:o.pinyin||'',
+ definition:o.definition||o.meaning||o.english||o.gloss||'',
+ pos:o.pos||o.part_of_speech||''
+ })).filter(x=>x.word);
+}
+async function choose(level){
+ current=level;document.querySelectorAll('.level').forEach(b=>b.classList.toggle('active',+b.dataset.level===level));
+ $('home').style.display='none';$('study').style.display='block';$('status').textContent='Loading vocabulary…';
+ try{
+  const res=await fetch(base+paths[level]);if(!res.ok)throw new Error('Could not load word list');
+  words=parseCSV(await res.text());if(!words.length)throw new Error('No vocabulary found in the file');
+  index=0;known.clear();$('levelName').textContent='HSK '+level;$('status').textContent=words.length+' words loaded';render();
+ }catch(e){$('status').textContent='Could not load the list. Check your internet connection and try again.';console.error(e)}
+}
+function render(){
+ if(!words.length)return;const w=words[index];shown=false;
+ $('hanzi').textContent=w.word;$('pinyin').textContent=w.pinyin||'—';$('meaning').textContent=w.definition||'Meaning not available';$('pos').textContent=w.pos||'';
+ $('back').style.display='none';$('tapHint').style.display='block';$('counter').textContent=(index+1)+' / '+words.length;
+ $('bar').style.width=((index+1)/words.length*100)+'%';$('prev').disabled=index===0;$('next').disabled=index===words.length-1;
+ $('known').textContent=known.has(index)?'✓ Known':'✓ Mark known';
+}
+function flip(){if(!words.length)return;shown=!shown;$('back').style.display=shown?'block':'none';$('tapHint').style.display=shown?'none':'block'}
+function move(n){if(index+n<0||index+n>=words.length)return;index+=n;render()}
+document.querySelectorAll('.level').forEach(b=>b.addEventListener('click',()=>choose(+b.dataset.level)));
+$('card').addEventListener('click',flip);$('card').addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();flip()}});
+$('prev').onclick=()=>move(-1);$('next').onclick=()=>move(1);
+$('backHome').onclick=()=>{$('study').style.display='none';$('home').style.display='block'};
+$('known').onclick=()=>{known.has(index)?known.delete(index):known.add(index);$('known').textContent=known.has(index)?'✓ Known':'✓ Mark known';if(index<words.length-1)move(1)};
+$('restart').onclick=()=>{index=0;render()};
+$('shuffle').onclick=()=>{for(let i=words.length-1;i>0;i--){let j=Math.floor(Math.random()*(i+1));[words[i],words[j]]=[words[j],words[i]]}index=0;render()};
+$('search').addEventListener('input',e=>{const q=e.target.value.trim().toLowerCase();if(!q)return;const i=words.findIndex(w=>w.word.includes(q)||w.pinyin.toLowerCase().includes(q));if(i>=0){index=i;render()}});
+$('card').addEventListener('touchstart',e=>touchX=e.changedTouches[0].screenX,{passive:true});
+$('card').addEventListener('touchend',e=>{let dx=e.changedTouches[0].screenX-touchX;if(Math.abs(dx)>55)move(dx<0?1:-1)},{passive:true});
+document.addEventListener('keydown',e=>{if($('study').style.display!=='block')return;if(e.key==='ArrowRight')move(1);if(e.key==='ArrowLeft')move(-1);if(e.key===' '&&document.activeElement.tagName!=='INPUT'){e.preventDefault();flip()}});
+</script></body></html>
